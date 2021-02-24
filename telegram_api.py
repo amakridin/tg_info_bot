@@ -13,7 +13,7 @@ url = f"https://api.telegram.org/bot{token}/"
 def get_updates(offset=None, timeout=30):
     method = 'getUpdates'
     params = {'timeout': timeout, 'offset': offset}
-    resp = requests.get(url=url + method, json=params, proxies=proxies)
+    resp = requests.get(url=url + method, json=params, proxies=proxies, verify=False)
     result_json = resp.json()
     if result_json.get('result') is not None:
         return result_json['result']
@@ -83,13 +83,13 @@ def _send(method, chat_id=0, mid=0, msg='', caption='', reply_mid=0, userlist=[]
     if userlist != []: jsn["users"] = userlist
     if file_path != '' and file_path.find('http') == 0:
         jsn["photo"] = file_path
-        return requests.post(url=url + method, json=jsn, proxies=proxies).json()
+        return requests.post(url=url + method, json=jsn, proxies=proxies, verify=False).json()
     elif file_path != '' and file_path.find('http') < 0:
         with open(file_path, "rb") as f:
             files = {file_type: f}
-            return requests.post(url=url + method, data=jsn, files=files, proxies=proxies).json()
+            return requests.post(url=url + method, data=jsn, files=files, proxies=proxies, verify=False).json()
     else:
-        return requests.post(url=url + method, json=jsn, proxies=proxies).json()
+        return requests.post(url=url + method, json=jsn, proxies=proxies, verify=False).json()
 
 def send_keyboard_button(chat_id, msg, button_type, button_text):
     button_types = {"contact": "request_contact", "location": "request_location", "poll": "request_poll	"}
@@ -102,7 +102,7 @@ def send_keyboard_button(chat_id, msg, button_type, button_text):
             }
     }
     method = 'sendMessage'
-    resp = requests.post(url=url + method, json=jsn, proxies=proxies)
+    resp = requests.post(url=url + method, json=jsn, proxies=proxies, verify=False)
     print(resp.text)
     resp = resp.json()
     if resp.get('error_code') is not None:
