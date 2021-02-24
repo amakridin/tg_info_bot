@@ -17,7 +17,7 @@ def get_updates(offset=None, timeout=30):
     if result_json.get('result') is not None:
         return result_json['result']
     else:
-        return None
+        return []
 
 def get_chats():
     return _send(method='getChats')
