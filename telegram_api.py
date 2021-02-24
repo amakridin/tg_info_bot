@@ -3,7 +3,7 @@ import json
 proxies = None
 with open('config') as f:
     token = f.read()
-print(token)
+token = token.strip().strip('\n')
 url = f"https://api.telegram.org/bot{token}/"
 
 # buttons=[[
