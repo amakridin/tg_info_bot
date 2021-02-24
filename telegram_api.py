@@ -13,8 +13,11 @@ def get_updates(offset=None, timeout=30):
     method = 'getUpdates'
     params = {'timeout': timeout, 'offset': offset}
     resp = requests.get(url=url + method, json=params, proxies=proxies)
-    result_json = resp.json()['result']
-    return result_json
+    result_json = resp.json()
+    if result_json.get('result') is not None:
+        return result_json['result']
+    else:
+        return None
 
 def get_chats():
     return _send(method='getChats')
