@@ -1,5 +1,3 @@
-import requests
-import json
 from telegram_api import *
 import json_params as json_params
 
@@ -53,7 +51,6 @@ if __name__ == "__main__":
     user_params = {}
     while True:
         for row in get_updates(offset=new_offset):
-            print(json.dumps(row, indent=4))
             jsn = json_params.get_params(row)
             if jsn['update_type'] == 'callback_query':
                 # button click event
