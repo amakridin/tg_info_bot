@@ -1,0 +1,7 @@
+class Settings:
+    TELEGRAM_TOKEN = "5240278243:AAEMmtPTPaqnamswsUBLERaiOjDdYdXc9aA"
+    GET_UPDATES_TIMEOUT = 30
+    DEFAULT_TIMEOUT = 2
+    LAST_REQUESTS_COUNT = 5
+    MATH_ACCURACY = 2
+    REDIS_DSN = "redis://redis"
