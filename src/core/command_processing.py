@@ -9,6 +9,7 @@ ADMIN_COMMANDS = {
     "/echo": "Возвращает текст, который отправили. \n<i>Пример: /echo привет\nВернет - привет</i>",
     "/send60": "Временное решение. Отправляет пользователям, разеганным в течение последних 60 минут текст, следующий после команды. \n<i>Пример: /send60 Вы зарегались в течение часа</i>",
     "/users": "Выгружает список пользователей",
+    "/delusers": "Удаляет пользователей"
 }
 
 
@@ -39,14 +40,17 @@ class CommandProcessing:
         elif command == "/send60":
             # отправляем всем, кто зарегался за последний час
             if params:
-                token = await self.get_bot_token(bot_id)
                 sql = "select chat_id from user where chat_id is not NULL and datetime(date_created)>=datetime('now', '-1 Hour');"
                 result = await self.db.get_many(sql=sql)
                 if result:
+                    token = await self.get_bot_token(bot_id)
                     tg = TelegramApi(token=token)
                     for row in result:
                         await tg.send_msg(MessageParams(chat_id=row[0], message=params))
 
+        elif command == "/delusers":
+            sql = "delete from user"
+            await self.db.crud(sql=sql)
     async def get_bot_token(self, bot_id: int) -> str:
         token = await self.db.get_one(sql="select token from bot where id=:id", binds={"id": bot_id})
         return token[0]
