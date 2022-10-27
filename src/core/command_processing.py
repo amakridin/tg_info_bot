@@ -12,6 +12,9 @@ ADMIN_COMMANDS = {
     "/delusers": "Удаляет пользователей",
     "/user/count": "Выгружает количество пользователей",
     "/myid": "возвращает мой id",
+    "/admin/add": "добавляем админа. Пример: /admin/add 123455 где 123456 - это user_id (получаем по команде /myid",
+    "/admin/remove": "Удаляем админа. Пример: /admin/add 123455 где 123456 - это user_id",
+    "/admin/list": "список id админов",
 }
 
 COMMON_COMMANDS = ["/myid", "/ping", "/echo"]
@@ -55,9 +58,8 @@ class CommandProcessing:
             return msg
 
         elif command == "/delusers":
-            return
-            # sql = "delete from user"
-            # await self.db.crud(sql=sql)
+            sql = "delete from user"
+            await self.db.crud(sql=sql)
 
         elif command == "/user/count":
             # возвращаем кол-во пользователей
@@ -68,6 +70,25 @@ class CommandProcessing:
 
         elif command == "/myid":
             return [MessageParams(chat_id=0, message=f"Мой id: {user_id}")]
+
+        elif command == "/admin/add":
+            sql = "insert into admin(user_id) select :user_id where not exists(select 0 from admin where user_id=:user_id)"
+            await self.db.crud(sql, {"user_id": user_id})
+            return [MessageParams(chat_id=0, message=f"Ok")]
+
+        elif command == "/admin/remove":
+            sql = "delete from admin where user_id=:user_id"
+            await self.db.crud(sql, {"user_id": user_id})
+            return [MessageParams(chat_id=0, message=f"Ok")]
+
+        elif command == "/admin/list":
+            sql = "select user_id from admin order by user_id"
+            result = await self.db.get_many(sql)
+            res = []
+            for row in result:
+                res.append(row[0])
+            return [MessageParams(chat_id=0, message="id админов: {}".format(", ".join(res)))]
+
 
     async def get_bot_token(self, bot_id: int) -> str:
         token = await self.db.get_one(sql="select token from bot where id=:id", binds={"id": bot_id})

@@ -74,5 +74,11 @@ Index("ix_scenario__rel_bot", ScenarioTable.rel_bot)
 Index("ix_scenario__id__rel_bot", ScenarioTable.rel_bot, ScenarioTable.step)
 
 
+class AdminTable(Base):
+    __tablename__ = "admin"
+
+    id = Column(Integer, primary_key=True, autoincrement="auto", nullable=False)
+    user_id = Column(Integer)
+
 # alembic revision --autogenerate -m "identify db"
 # alembic upgrade head
