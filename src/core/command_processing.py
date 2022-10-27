@@ -1,6 +1,7 @@
 from typing import List
 
-from src.infra.gateways.telegram_api import MessageParams
+from src.infra.db.db_base import SQLiteBase
+from src.infra.gateways.telegram_api import MessageParams, TelegramApi
 
 ADMIN_COMMANDS = {
     "/help": "Общая справка по командам",
@@ -13,9 +14,9 @@ ADMIN_COMMANDS = {
 
 class CommandProcessing:
     def __init__(self):
-        pass
+        self.db = SQLiteBase()
 
-    async def __call__(self, message: str) -> List[MessageParams]:
+    async def __call__(self, bot_id: int, message: str) -> List[MessageParams]:
         message = message.strip()
         command, params = message, ""
         if message.find(" ") > 0:
@@ -35,6 +36,17 @@ class CommandProcessing:
             if params:
                 return [MessageParams(chat_id=0, message=params)]
 
-        elif command == "/send":
+        elif command == "/send60":
             # отправляем всем, кто зарегался за последний час
-            pass
+            if params:
+                token = await self.get_bot_token(bot_id)
+                sql = "select chat_id from user where chat_id is not NULL and datetime(date_created)>=datetime('now', '-1 Hour');"
+                result = await self.db.get_many(sql=sql)
+                if result:
+                    tg = TelegramApi(token=token)
+                    for row in result:
+                        await tg.send_msg(MessageParams(chat_id=row[0], message=params))
+
+    async def get_bot_token(self, bot_id: int) -> str:
+        token = await self.db.get_one(sql="select token from bot where id=:id", binds={"id": bot_id})
+        return token[0]

@@ -48,7 +48,7 @@ class EventProcessingApp:
             chat_id = data["message"]["chat"]["id"]
 
             if message and message.split(" ")[0] in ADMIN_COMMANDS.keys():
-                msgs = await self.command_processing(message)
+                msgs = await self.command_processing(bot_id, message)
                 for msg in msgs:
                     if isinstance(msg, KeyboardParams):
                         await tg_api.send_keyboard_button(chat_id=chat_id, keyboard_params=msg)
