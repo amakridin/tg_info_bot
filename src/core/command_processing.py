@@ -45,7 +45,7 @@ class CommandProcessing:
             # отправляем всем, кто зарегался за последний час
             msg = []
             if params:
-                sql = "select chat_id from user where bot_id=:bot_id is not NULL and datetime(date_created)>=datetime('now', '-1 Hour');"
+                sql = "select chat_id from user where rel_bot=:bot_id and datetime(date_created)>=datetime('now', '-1 Hour');"
                 result = await self.db.get_many(sql=sql, binds={"bot_id": bot_id})
                 cnt = len(result) if result else 0
                 if result:
@@ -62,7 +62,7 @@ class CommandProcessing:
         elif command == "/user/count":
             # возвращаем кол-во пользователей
             if params:
-                sql = "select count(1) from user where bot_id=:bot_id"
+                sql = "select count(1) from user where rel_bot=:bot_id"
                 result = await self.db.get_one(sql=sql, binds={"bot_id": bot_id})
                 return [MessageParams(chat_id=0, message=f"Кол-во пользователей: {result[0]}")]
 
