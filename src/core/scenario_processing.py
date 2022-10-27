@@ -94,6 +94,10 @@ class ScenarioProcessing:
                 sql=f"insert into user(date_created, rel_bot, user_id, chat_id) select CURRENT_TIMESTAMP, :bot_id, :user_id, :chat_id where not exists (select 1 from user where user_id=:user_id)",
                 binds={"bot_id": bot_id, "user_id": user_id, "chat_id": chat_id},
             )
+            await self.db.crud(
+                sql=f"update user set chat_id=:chat_id where user_id=:user_id and bot_id=:bot_id",
+                binds={"bot_id": bot_id, "user_id": user_id, "chat_id": chat_id},
+            )
         except:
             pass
         await self.redis.set(key=f"{bot_id}:{user_id}", value=step)
