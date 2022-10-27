@@ -1,0 +1,104 @@
+{
+    "start": "Тут вступительный текст. Пока не сделано!!!!!",
+    "shuffle": false,
+    "check_answer": false,
+    "questions": [
+        {
+            "question": {"text": "Екатеринбург знаменит тем, что находится на месте встречи Европы и Азии. Правда ли, что вокруг города есть целых 13 стелл, обозначающих это?", "img": null},
+            "answers": {
+                "list": [["\uD83D\uDFE2 ПРАВДА", "\uD83D\uDD34ЛОЖЬ"]],
+                "right_answer": 0,
+                "explanation": null,
+                "hint": null
+            }
+        },
+        {
+            "question": {"text": "25 ноября 2011 года состоялось открытие БЦ “Высоцкий” первого в России небоскреба в северных широтах, а в 2022 году на его крыше (55 этаж) открылся круглогодичный бассейн.", "img": null},
+            "answers": {
+                "list": [["\uD83D\uDFE2 ПРАВДА", "\uD83D\uDD34ЛОЖЬ"]],
+                "right_answer": 0,
+                "explanation": null,
+                "hint": null
+            }
+        },
+        {
+            "question": {"text": "Какая картинка принадлежит Уралу?", "img": "img/mountain.jpg"},
+            "answers": {
+                "list": [["Верхняя"], ["Нижняя"]],
+                "right_answer": 0,
+                "explanation": null,
+                "hint": null
+            }
+        },
+        {
+            "question": {"text": "Правда ли, что Конгресс-Центр ЭКСПО в Екатеринбурге по вместимости может сравниться с московским КРОКУС Сити Холлом?",
+                         "img": "img/expo.jpg"},
+            "answers": {
+                "list": [["\uD83D\uDFE2 ПРАВДА", "\uD83D\uDD34ЛОЖЬ"]],
+                "right_answer": 0,
+                "explanation": null,
+                "hint": null
+            }
+        },
+        {
+            "question": {"text": "В Екатеринбурге в 2021 году запущен единственный в России 4х звездочный HYATT", "img": null},
+            "answers": {
+                "list": [["\uD83D\uDFE2 ПРАВДА", "\uD83D\uDD34ЛОЖЬ"]],
+                "right_answer": 0,
+                "explanation": null,
+                "hint": null
+            }
+        },
+        {
+            "question": {"text": "Правда ли, что Свердловская область единовременно может разместить в отелях более 40000 человек?", "img": null},
+            "answers": {
+                "list": [["\uD83D\uDFE2 ПРАВДА", "\uD83D\uDD34ЛОЖЬ"]],
+                "right_answer": 0,
+                "explanation": null,
+                "hint": null
+            }
+        },
+        {
+            "question": {"text": "Не зря о богатстве уральской природы ходят легенды. Сможете догадаться, на какой из картинок Уральские ландшафт?",
+                "img": "img/desert.jpg"},
+            "answers": {
+                "list": [["Сверху"], ["Снизу"]],
+                "right_answer": 1,
+                "explanation": null,
+                "hint": null
+            }
+        },
+        {
+            "question": {"text": "Какое из этих гольф полей находится вблизи Екатеринбурга?", "img": "img/golf.jpg"},
+            "answers": {
+                "list": [["Верхнее"], ["Нижнее"]],
+                "right_answer": 1,
+                "explanation": null,
+                "hint": null
+            }
+        },
+        {
+            "question": {"text": "В Екатеринбурге расположен самый большой грузинский ресторан в России", "img": null},
+            "answers": {
+                "list": [["\uD83D\uDFE2 ПРАВДА", "\uD83D\uDD34ЛОЖЬ"]],
+                "right_answer": 0,
+                "explanation": null,
+                "hint": null
+            }
+        },
+        {
+            "question": {"text": "Екатеринбург строится так стремительно, что скоро его будет невозможно отличить от таких мегаполисов, как, например, Токио или Лас-Вегас. И все-таки истинный уралец всегда узнает родной пейзаж. А вы знаете, на каком фото Екатеринбург?",
+                         "img": "img/skyscrapers.jpg"},
+            "answers": {
+                "list": [["Сверху"], ["Снизу"]],
+                "right_answer": 0,
+                "explanation": null,
+                "hint": null
+            }
+        }
+
+    ],
+    "score_range": [
+        [0, 900, "\uD83D\uDC4D\uD83C\uDFFC\nВстречаемся на Урале! ❤️\nТелеграмм: @meetinural\nСайт: meetinural.ru"]
+    ]
+}

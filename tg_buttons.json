@@ -1,0 +1,45 @@
+{
+    "bot_id": 3,
+    "data": {
+        "update_id": 941816918,
+        "callback_query": {
+            "id": "1351206154965109248",
+            "from": {
+                "id": 314602198,
+                "is_bot": false,
+                "first_name": "Alexander",
+                "last_name": "M",
+                "username": "amakridin",
+                "language_code": "en",
+            },
+            "message": {
+                "message_id": 419,
+                "from": {
+                    "id": 5240278243,
+                    "is_bot": true,
+                    "first_name": "simple_math_bot",
+                    "username": "Simple2022MathBot",
+                },
+                "chat": {
+                    "id": 314602198,
+                    "first_name": "Alexander",
+                    "last_name": "M",
+                    "username": "amakridin",
+                    "type": "private",
+                },
+                "date": 1666130705,
+                "text": "hello",
+                "reply_markup": {
+                    "inline_keyboard": [
+                        [
+                            {"text": "Yes", "callback_data": "btn0"},
+                            {"text": "No", "callback_data": "btn1"},
+                        ]
+                    ]
+                },
+            },
+            "chat_instance": "5051082961037161680",
+            "data": "btn0",
+        },
+    },
+}

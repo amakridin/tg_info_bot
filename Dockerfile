@@ -24,7 +24,7 @@ ENV PYTHONFAULTHANDLER=1 \
 
 RUN pip install -r requirements.txt
 
-COPY tg_simple_math_bot /app/tg_simple_math_bot
+COPY common_tg_bot /app/tg_simple_math_bot
 
 
 CMD ["python", "-m", "tg_simple_math_bot.app"]

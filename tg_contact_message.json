@@ -1,0 +1,46 @@
+{
+    "update_id": 275082223,
+    "message": {
+        "message_id": 437,
+        "from": {
+            "id": 314602198,
+            "is_bot": False,
+            "first_name": "Alexander",
+            "last_name": "M",
+            "username": "amakridin",
+            "language_code": "en",
+        },
+        "chat": {
+            "id": 314602198,
+            "first_name": "Alexander",
+            "last_name": "M",
+            "username": "amakridin",
+            "type": "private",
+        },
+        "date": 1666857577,
+        "reply_to_message": {
+            "message_id": 436,
+            "from": {
+                "id": 5505678392,
+                "is_bot": True,
+                "first_name": "Уральский квиз",
+                "username": "uralquiz_bot",
+            },
+            "chat": {
+                "id": 314602198,
+                "first_name": "Alexander",
+                "last_name": "M",
+                "username": "amakridin",
+                "type": "private",
+            },
+            "date": 1666857564,
+            "text": "Отправить свой контакт",
+        },
+        "contact": {
+            "phone_number": "+79221631684",
+            "first_name": "Alexander",
+            "last_name": "M",
+            "user_id": 314602198,
+        },
+    },
+}

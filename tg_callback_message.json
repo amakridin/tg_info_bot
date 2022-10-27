@@ -1,0 +1,68 @@
+{
+    "bot_id": 3,
+    "data": {
+        "update_id": 941816934,
+        "callback_query": {
+            "id": "1351206155867312113",
+            "from": {
+                "id": 314602198,
+                "is_bot": false,
+                "first_name": "Alexander",
+                "last_name": "M",
+                "username": "amakridin",
+                "language_code": "en",
+            },
+            "message": {
+                "message_id": 482,
+                "from": {
+                    "id": 5240278243,
+                    "is_bot": true,
+                    "first_name": "simple_math_bot",
+                    "username": "Simple2022MathBot",
+                },
+                "chat": {
+                    "id": 314602198,
+                    "first_name": "Alexander",
+                    "last_name": "M",
+                    "username": "amakridin",
+                    "type": "private",
+                },
+                "date": 1666190405,
+                "photo": [
+                    {
+                        "file_id": "AgACAgIAAxkDAAIB4mNQDEUWO4Ryao6cGBbGfox-a6P7AAKevzEbTSx4SrmmAAFDC5wWdwEAAwIAA3MAAyoE",
+                        "file_unique_id": "AQADnr8xG00seEp4",
+                        "file_size": 1174,
+                        "width": 90,
+                        "height": 85,
+                    },
+                    {
+                        "file_id": "AgACAgIAAxkDAAIB4mNQDEUWO4Ryao6cGBbGfox-a6P7AAKevzEbTSx4SrmmAAFDC5wWdwEAAwIAA20AAyoE",
+                        "file_unique_id": "AQADnr8xG00seEpy",
+                        "file_size": 15056,
+                        "width": 320,
+                        "height": 301,
+                    },
+                    {
+                        "file_id": "AgACAgIAAxkDAAIB4mNQDEUWO4Ryao6cGBbGfox-a6P7AAKevzEbTSx4SrmmAAFDC5wWdwEAAwIAA3gAAyoE",
+                        "file_unique_id": "AQADnr8xG00seEp9",
+                        "file_size": 37124,
+                        "width": 605,
+                        "height": 570,
+                    },
+                ],
+                "caption": "hello",
+                "reply_markup": {
+                    "inline_keyboard": [
+                        [
+                            {"text": "Yes", "callback_data": "btn0"},
+                            {"text": "No", "callback_data": "btn1"},
+                        ]
+                    ]
+                },
+            },
+            "chat_instance": "5051082961037161680",
+            "data": "btn0",
+        },
+    },
+}

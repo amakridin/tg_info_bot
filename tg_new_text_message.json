@@ -1,0 +1,23 @@
+{
+    "update_id": 941816879,
+    "message": {
+        "message_id": 373,
+        "from": {
+            "id": 314602198,
+            "is_bot": False,
+            "first_name": "Alexander",
+            "last_name": "M",
+            "username": "amakridin",
+            "language_code": "en",
+        },
+        "chat": {
+            "id": 314602198,
+            "first_name": "Alexander",
+            "last_name": "M",
+            "username": "amakridin",
+            "type": "private",
+        },
+        "date": 1666043772,
+        "text": "csc",
+    },
+}
