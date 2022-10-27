@@ -9,15 +9,19 @@ ADMIN_COMMANDS = {
     "/echo": "Возвращает текст, который отправили. \n<i>Пример: /echo привет\nВернет - привет</i>",
     "/send60": "Временное решение. Отправляет пользователям, разеганным в течение последних 60 минут текст, следующий после команды. \n<i>Пример: /send60 Вы зарегались в течение часа</i>",
     "/users": "Выгружает список пользователей",
-    "/delusers": "Удаляет пользователей"
+    "/delusers": "Удаляет пользователей",
+    "/user/count": "Выгружает количество пользователей",
+    "/myid": "возвращает мой id",
 }
+
+COMMON_COMMANDS = ["/myid", "/ping", "/echo"]
 
 
 class CommandProcessing:
     def __init__(self):
         self.db = SQLiteBase()
 
-    async def __call__(self, bot_id: int, message: str) -> List[MessageParams]:
+    async def __call__(self, bot_id: int, user_id: int, message: str) -> List[MessageParams]:
         message = message.strip()
         command, params = message, ""
         if message.find(" ") > 0:
@@ -39,18 +43,30 @@ class CommandProcessing:
 
         elif command == "/send60":
             # отправляем всем, кто зарегался за последний час
+            msg = []
             if params:
-                sql = "select chat_id from user where chat_id is not NULL and datetime(date_created)>=datetime('now', '-1 Hour');"
-                result = await self.db.get_many(sql=sql)
+                sql = "select chat_id from user where bot_id=:bot_id is not NULL and datetime(date_created)>=datetime('now', '-1 Hour');"
+                result = await self.db.get_many(sql=sql, binds={"bot_id": bot_id})
                 if result:
-                    token = await self.get_bot_token(bot_id)
-                    tg = TelegramApi(token=token)
                     for row in result:
-                        await tg.send_msg(MessageParams(chat_id=row[0], message=params))
+                        msg.append(MessageParams(chat_id=row[0], message=params))
+            return msg
 
         elif command == "/delusers":
-            sql = "delete from user"
-            await self.db.crud(sql=sql)
+            return
+            # sql = "delete from user"
+            # await self.db.crud(sql=sql)
+
+        elif command == "/user/count":
+            # возвращаем кол-во пользователей
+            if params:
+                sql = "select count(1) from user where bot_id=:bot_id"
+                result = await self.db.get_one(sql=sql, binds={"bot_id": bot_id})
+                return [MessageParams(chat_id=0, message=f"Кол-во пользователей: {result[0]}")]
+
+        elif command == "/myid":
+            return [MessageParams(chat_id=0, message=f"Мой id: {user_id}")]
+
     async def get_bot_token(self, bot_id: int) -> str:
         token = await self.db.get_one(sql="select token from bot where id=:id", binds={"id": bot_id})
         return token[0]
