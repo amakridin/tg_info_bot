@@ -47,9 +47,11 @@ class CommandProcessing:
             if params:
                 sql = "select chat_id from user where bot_id=:bot_id is not NULL and datetime(date_created)>=datetime('now', '-1 Hour');"
                 result = await self.db.get_many(sql=sql, binds={"bot_id": bot_id})
+                cnt = len(result) if result else 0
                 if result:
                     for row in result:
-                        msg.append(MessageParams(chat_id=row[0], message=params))
+                        msg.append(MessageParams(chat_id=int(row[0]), message=params))
+            msg.append(MessageParams(chat_id=0, message=f"отправлено сообщений: {cnt}"))
             return msg
 
         elif command == "/delusers":
