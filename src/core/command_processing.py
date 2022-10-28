@@ -59,7 +59,7 @@ class CommandProcessing:
                 return []
             msg = []
             if params:
-                sql = "select chat_id from user where rel_bot=:bot_id and datetime(date_created)>=datetime('now', '-1 Hour');"
+                sql = "select chat_id from user where rel_bot=:bot_id and chat_id is not null and datetime(date_created)>=datetime('now', '-1 Hour');"
                 result = await self.db.get_many(sql=sql, binds={"bot_id": bot_id})
                 cnt = len(result) if result else 0
                 if result:
@@ -68,13 +68,13 @@ class CommandProcessing:
             msg.append(MessageParams(chat_id=0, message=f"отправлено сообщений: {cnt}"))
             return msg
 
-        elif command == "/send/60":
+        elif command == "/send":
             # отправляем всем, кто зарегался за последний час
             if not await self.command_available(user_id, command):
                 return []
             msg = []
             if params:
-                sql = "select chat_id from user where rel_bot=:bot_id"
+                sql = "select chat_id from user where rel_bot=:bot_id and chat_id is not null"
                 result = await self.db.get_many(sql=sql, binds={"bot_id": bot_id})
                 cnt = len(result) if result else 0
                 if result:
@@ -95,10 +95,9 @@ class CommandProcessing:
             # возвращаем кол-во пользователей
             if not await self.command_available(user_id, command):
                 return []
-            if params:
-                sql = "select count(1) from user where rel_bot=:bot_id"
-                result = await self.db.get_one(sql=sql, binds={"bot_id": bot_id})
-                return [MessageParams(chat_id=0, message=f"Кол-во пользователей: {result[0]}")]
+            sql = "select count(1) from user where rel_bot=:bot_id"
+            result = await self.db.get_one(sql=sql, binds={"bot_id": bot_id})
+            return [MessageParams(chat_id=0, message=f"Кол-во пользователей: {result[0]}")]
 
         elif command == "/users/list":
             # возвращаем кол-во пользователей
@@ -114,16 +113,20 @@ class CommandProcessing:
         elif command == "/admin/add":
             if not await self.command_available(user_id, command):
                 return []
-            sql = "insert into admin(user_id) select :user_id where not exists(select 0 from admin where user_id=:user_id)"
-            await self.db.crud(sql, {"user_id": user_id})
-            return [MessageParams(chat_id=0, message=f"Ok")]
+            if params:
+                sql = "insert into admin(user_id) select :user_id where not exists(select 0 from admin where user_id=:user_id)"
+                await self.db.crud(sql, {"user_id": int(params)})
+                return [MessageParams(chat_id=0, message=f"Ok")]
+            return []
 
         elif command == "/admin/remove":
             if not await self.command_available(user_id, command):
                 return []
-            sql = "delete from admin where user_id=:user_id"
-            await self.db.crud(sql, {"user_id": user_id})
-            return [MessageParams(chat_id=0, message=f"Ok")]
+            if params:
+                sql = "delete from admin where user_id=:user_id"
+                await self.db.crud(sql, {"user_id": params})
+                return [MessageParams(chat_id=0, message=f"Ok")]
+            return []
 
         elif command == "/admin/list":
             if not await self.command_available(user_id, command):
