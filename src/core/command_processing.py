@@ -138,6 +138,9 @@ class CommandProcessing:
         elif command == "/sql":
             if not await self.command_available(user_id, command):
                 return []
+            if params.lower().find("insert") >= 0 or params.lower().find("update") >= 0 or params.lower().find("delete") >= 0:
+                await self.db.crud(sql=params)
+                return []
             result = await self.db.get_many(params, names=True)
             res = []
             if result:
