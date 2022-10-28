@@ -32,7 +32,9 @@ class SQLiteBase:
                 names = list([description[0] for description in cursor.description])
                 res = await cursor.fetchall()
                 if len(res) > 0:
-                    return names, res
+                    if names:
+                        return names, res
+                    return res
 
 
 async def run():
