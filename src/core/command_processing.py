@@ -1,7 +1,8 @@
 from typing import List
 
 from src.infra.db.db_base import SQLiteBase
-from src.infra.gateways.telegram_api import MessageParams
+from src.infra.gateways.telegram_api import MessageParams, AttachmentParams, Attachment
+import openpyxl
 
 ADMIN_COMMANDS = {
     "/help": "Общая справка по командам",
@@ -68,7 +69,7 @@ class CommandProcessing:
             msg.append(MessageParams(chat_id=0, message=f"отправлено сообщений: {cnt}"))
             return msg
 
-        elif command == "/send":
+        elif command == "/send/all":
             # отправляем всем, кто зарегался за последний час
             if not await self.command_available(user_id, command):
                 return []
@@ -103,7 +104,30 @@ class CommandProcessing:
             # возвращаем кол-во пользователей
             if not await self.command_available(user_id, command):
                 return []
-            return [MessageParams(chat_id=0, message="в процессе реализации")]
+            sql = """select name "Имя", phone "Телефон", email, occupation "Вид деятельности", COALESCE(score,0) "баллы", date_created "Дата регистрации"
+from user where rel_bot = :bot_id
+order by date_created"""
+            results = await self.db.get_many(sql=sql, binds={"bot_id": bot_id}, names=True)
+            if results:
+                names, result = results
+                book = openpyxl.Workbook()
+                sheet = book.active
+                i = 1
+                for nn, name in enumerate(names, start=1):
+                    cell = sheet.cell(row=i, column=nn)
+                    cell.value = name
+                for row in result:
+                    i += 1
+                    j = 1
+                    for col in row:
+                        cell = sheet.cell(row=i, column=j)
+                        cell.value = col
+                        j += 1
+
+                f_name = f"files/users_{user_id}.xlsx"
+                book.save(f_name)
+                return [MessageParams(chat_id=0, message="список пользователей", attach=
+                                      AttachmentParams(file_path=f_name, file_type=Attachment.FILE))]
 
         elif command == "/myid":
             if not await self.command_available(user_id, command):
