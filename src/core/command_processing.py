@@ -1,20 +1,22 @@
 from typing import List
 
 from src.infra.db.db_base import SQLiteBase
-from src.infra.gateways.telegram_api import MessageParams, TelegramApi
+from src.infra.gateways.telegram_api import MessageParams
 
 ADMIN_COMMANDS = {
     "/help": "Общая справка по командам",
     "/ping": "Проверка работает ли бот",
     "/echo": "Возвращает текст, который отправили. \n<i>Пример: /echo привет\nВернет - привет</i>",
-    "/send60": "Временное решение. Отправляет пользователям, разеганным в течение последних 60 минут текст, следующий после команды. \n<i>Пример: /send60 Вы зарегались в течение часа</i>",
+    "/myid": "возвращает мой id",
+    "/send/60": "Временное решение. Отправляет пользователям, разеганным в течение последних 60 минут текст, следующий после команды. \n<i>Пример: /send/60 Вы зарегались в течение часа</i>",
+    "/send/all": "Временное решение. Отправляет ВСЕМ пользователям текст, следующий после команды. \n<i>Пример: /send/all Сообщение, которое уходит всем</i>",
     "/users/list": "Выгружает список пользователей",
     "/users/del": "Удаляет пользователей",
     "/users/count": "Выгружает количество пользователей",
-    "/myid": "возвращает мой id",
     "/admin/add": "добавляем админа. Пример: /admin/add 123455 где 123456 - это user_id (получаем по команде /myid",
     "/admin/remove": "Удаляем админа. Пример: /admin/add 123455 где 123456 - это user_id",
     "/admin/list": "список id админов",
+    "/sql": "выполняет sql запрос"
 }
 
 COMMON_COMMANDS = ["/myid", "/ping", "/echo"]
@@ -51,13 +53,28 @@ class CommandProcessing:
             if params:
                 return [MessageParams(chat_id=0, message=params)]
 
-        elif command == "/send60":
+        elif command == "/send/60":
             # отправляем всем, кто зарегался за последний час
             if not await self.command_available(user_id, command):
                 return []
             msg = []
             if params:
                 sql = "select chat_id from user where rel_bot=:bot_id and datetime(date_created)>=datetime('now', '-1 Hour');"
+                result = await self.db.get_many(sql=sql, binds={"bot_id": bot_id})
+                cnt = len(result) if result else 0
+                if result:
+                    for row in result:
+                        msg.append(MessageParams(chat_id=int(row[0]), message=params))
+            msg.append(MessageParams(chat_id=0, message=f"отправлено сообщений: {cnt}"))
+            return msg
+
+        elif command == "/send/60":
+            # отправляем всем, кто зарегался за последний час
+            if not await self.command_available(user_id, command):
+                return []
+            msg = []
+            if params:
+                sql = "select chat_id from user where rel_bot=:bot_id"
                 result = await self.db.get_many(sql=sql, binds={"bot_id": bot_id})
                 cnt = len(result) if result else 0
                 if result:
@@ -118,13 +135,25 @@ class CommandProcessing:
                 res.append(str(row[0]))
             return [MessageParams(chat_id=0, message="id админов: {}".format(", ".join(res)))]
 
+        elif command == "/sql":
+            if not await self.command_available(user_id, command):
+                return []
+            result = await self.db.get_many(params, names=True)
+            res = []
+            if result:
+                names, data = result
+                for nn, row in enumerate(data, start=1):
+                    onerow = f"\n*** ROW={nn} ***\n"
+                    for n in range(len(row)):
+                        onerow += f"{names[n]}: {row[n]}\n"
+                    onerow.strip().strip("\n")
+                    res.append(onerow)
+
+                return [MessageParams(chat_id=0, message="\n\n".join(res))]
+
     async def command_available(self, user_id: int, command: str):
         if command in COMMON_COMMANDS:
             return True
         result = await self.db.get_one("select 1 from admin where user_id=:user_id", {"user_id": user_id})
         return True if result else False
 
-
-    async def get_bot_token(self, bot_id: int) -> str:
-        token = await self.db.get_one(sql="select token from bot where id=:id", binds={"id": bot_id})
-        return token[0]
