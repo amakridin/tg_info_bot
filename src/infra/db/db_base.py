@@ -29,11 +29,11 @@ class SQLiteBase:
     async def get_many(self, sql: str, binds: Optional[dict[str, Any]] = None, names=False) -> Union[list[tuple[Any]], None]:
         async with aiosqlite.connect(self.conn_str) as db:
             async with db.execute(sql, binds) as cursor:
-                names = list([description[0] for description in cursor.description])
+                names_list = list([description[0] for description in cursor.description])
                 res = await cursor.fetchall()
                 if len(res) > 0:
                     if names:
-                        return names, res
+                        return names_list, res
                     return res
 
 
