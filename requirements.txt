@@ -4,3 +4,7 @@ alembic==1.8.1
 aiosqlite==0.17.0
 aiohttp==3.8.3
 openpyxl==3.0.10
+gspread~=5.12.3
+validators~=0.22.0
+python_dotenv~=1.0.0
+PyYAML~=6.0.1

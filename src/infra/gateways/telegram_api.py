@@ -1,22 +1,25 @@
-from typing import Any, Optional
-import aiohttp
-from config import GET_UPDATES_TIMEOUT, DEFAULT_HTTP_TIMEOUT
-from yarl import URL
 import json
 import logging
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from enum import Enum
+from typing import Any, Optional
+
+import aiohttp
+import validators
+from yarl import URL
+
+from get_config import get_key_config
 
 logger = logging.getLogger(__name__)
 BASE_URL = "https://api.telegram.org/bot{tg_token}"
 
 
-class Attachment(Enum):
+class Attachment(str, Enum):
     IMAGE = "photo"
     FILE = "document"
 
 
-class ButtonType(Enum):
+class ButtonType(str, Enum):
     BUTTONS = "inline_keyboard"
     KEYBOARD = "keyboard"
     REQUEST_CONTACT = "request_contact"
@@ -45,7 +48,7 @@ class MessageParams:
     attach: AttachmentParams = None
 
 
-class KeyboardTypes(Enum):
+class KeyboardTypes(str, Enum):
     CONTACT = "request_contact"
     LOCATION = "request_location"
     POOL = "request_poll"
@@ -81,7 +84,8 @@ class MessageCallbackParams:
 class TelegramApi:
     def __init__(self, token: str):
         self.url_base = BASE_URL.format(tg_token=token)
-        self.longpolling_timeout = GET_UPDATES_TIMEOUT
+        self.longpolling_timeout = int(get_key_config("GET_UPDATES_TIMEOUT"))
+        self.http_timeout = int(get_key_config("DEFAULT_HTTP_TIMEOUT"))
 
     async def get_updates(self, offset: int = -1) -> list[Any]:
         method = "getUpdates"
@@ -109,7 +113,7 @@ class TelegramApi:
             msg_params["caption"] = message_params.message
             if message_params.attach.file_type == Attachment.IMAGE:
                 method = "sendPhoto"
-                if message_params.attach.file_path.startswith("http"):
+                if validators.url(message_params.attach.file_path):
                     msg_params["photo"] = message_params.attach.file_path
                 else:
                     try:
@@ -128,16 +132,15 @@ class TelegramApi:
                 {"inline_keyboard": message_params.buttons}
             )
 
-        if method == "sendMessage":
-            msg_params["text"] = message_params.message
-            msg_params["parse_mode"] = "HTML"
+        msg_params["text"] = message_params.message
+        msg_params["parse_mode"] = "html"
 
         url = URL(self.url_base) / method
         try:
             async with aiohttp.request(
                 method=aiohttp.hdrs.METH_POST,
                 url=url,
-                timeout=aiohttp.ClientTimeout(DEFAULT_HTTP_TIMEOUT),
+                timeout=aiohttp.ClientTimeout(self.http_timeout),
                 data=msg_params,
                 raise_for_status=False,
             ) as response:
@@ -146,46 +149,48 @@ class TelegramApi:
         except Exception as er:
             logger.debug(er)
 
-    async def send_keyboard_button(self, chat_id: int, keyboard_params: KeyboardParams = None, remove: bool = False):
-        params = {
-            "chat_id": chat_id,
-            "text": keyboard_params.message,
-            "reply_markup": {
-                "keyboard": [
-                    [
-                        {
-                            "text": keyboard_params.button_text,
-                            keyboard_params.keyboard_type.value: True,
-                        }
-                    ]
-                ],
-                "one_time_keyboard": True,
-                "resize_keyboard": True,
-            },
-        } if not remove else {
-            "chat_id": chat_id,
-            "text": "Спасибо!",
-            "reply_markup": {
-                "remove_keyboard": True
+    async def send_keyboard_button(
+        self, chat_id: int, keyboard_params: KeyboardParams = None, remove: bool = False
+    ):
+        params = (
+            {
+                "chat_id": chat_id,
+                "text": keyboard_params.message,
+                "reply_markup": {
+                    "keyboard": [
+                        [
+                            {
+                                "text": keyboard_params.button_text,
+                                keyboard_params.keyboard_type.value: True,
+                            }
+                        ]
+                    ],
+                    "one_time_keyboard": True,
+                    "resize_keyboard": True,
+                },
             }
-        }
+            if not remove
+            else {
+                "chat_id": chat_id,
+                "text": "Спасибо!",
+                "reply_markup": {"remove_keyboard": True},
+            }
+        )
         method = "sendMessage"
         url = URL(self.url_base) / method
 
         try:
             async with aiohttp.request(
-                    method=aiohttp.hdrs.METH_POST,
-                    url=url,
-                    json=params,
-                    # timeout=aiohttp.ClientTimeout(self.longpolling_timeout + 5),
-                    # raise_for_status=True
-            )as response:
+                method=aiohttp.hdrs.METH_POST,
+                url=url,
+                json=params,
+                # timeout=aiohttp.ClientTimeout(self.longpolling_timeout + 5),
+                # raise_for_status=True
+            ) as response:
                 jsn = await response.json()
         except Exception as er:
             logger.debug(er)
             return []
-
-
 
     async def send_poll(self, chat_id: int):
         method = "sendPoll"
@@ -206,7 +211,7 @@ class TelegramApi:
         async with aiohttp.request(
             method=aiohttp.hdrs.METH_POST,
             url=url,
-            timeout=aiohttp.ClientTimeout(DEFAULT_HTTP_TIMEOUT),
+            timeout=aiohttp.ClientTimeout(self.http_timeout),
             json=params,
             raise_for_status=True,
         ) as response:
@@ -221,7 +226,7 @@ class TelegramApi:
         async with aiohttp.request(
             method=aiohttp.hdrs.METH_POST,
             url=url,
-            timeout=aiohttp.ClientTimeout(DEFAULT_HTTP_TIMEOUT),
+            timeout=aiohttp.ClientTimeout(self.http_timeout),
             json=params,
             raise_for_status=True,
         ) as response:
@@ -234,48 +239,9 @@ class TelegramApi:
         async with aiohttp.request(
             method=aiohttp.hdrs.METH_POST,
             url=url,
-            timeout=aiohttp.ClientTimeout(DEFAULT_HTTP_TIMEOUT),
+            timeout=aiohttp.ClientTimeout(self.http_timeout),
             json=asdict(params),
             raise_for_status=False,
         ) as response:
             jsn = await response.json()
             return jsn
-
-
-async def run():
-    tg = TelegramApi("5240278243:AAEMmtPTPaqnamswsUBLERaiOjDdYdXc9aA")
-
-    buttons = [
-        [
-            {"text": "Yes", "callback_data": "btn0"},
-            {"text": "No", "callback_data": "btn1"},
-        ]
-    ]
-    # await tg.send_buttons(chat_id=314602198, message="hello", buttons=buttons)
-
-    # await tg.send_msg(MessageParams(chat_id=314602198, message="hello"))
-    # await tg.send_msg(MessageParams(chat_id=314602198, message="hello", buttons=buttons))
-    # await tg.send_msg(MessageParams(chat_id=314602198, message="hello", buttons=buttons,
-    #                                 attach=AttachmentParams(file_path="img_test.png", file_type=Attachment.IMAGE)))
-    await tg.send_msg(
-        MessageParams(
-            chat_id=314602198,
-            message="hello",
-            buttons=buttons,
-            attach=AttachmentParams(
-                file_path="img_test.png", file_type=Attachment.FILE
-            ),
-        )
-    )
-    # await tg.send_msg(MessageParams(chat_id=314602198, message="hello", buttons=buttons,
-    #                                 attach=AttachmentParams(file_path="https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg", file_type=Attachment.IMAGE)))
-    # await tg.send_poll(chat_id=314602198)
-    # await tg.send_quiz(chat_id=314602198)
-    # await tg.send_reaction(chat_id=314602198, message_id=478)
-    # await tg.answer_callback_query(callback_query_id=1351206155867312113, message="wqewqewqe")
-
-
-import asyncio
-
-if __name__ == "__main__":
-    asyncio.run(run())

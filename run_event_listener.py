@@ -1,5 +1,6 @@
-from src.apps.event_listener.app import EventListenerApp
 import asyncio
 
+from src.apps.event_listener.app import EventListenerApp
+
 event_listener = EventListenerApp()
-asyncio.run(event_listener.run())
+asyncio.run(event_listener())

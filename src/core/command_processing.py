@@ -1,189 +1,229 @@
-from typing import List
+import os
+from typing import Callable, Optional
 
+import logging
+
+import validators
+from yarl import URL
+
+from get_config import get_key_config
+from src.core.models import (
+    BotEvent,
+    CommandParams,
+    HandlerParams,
+    HandledMessageResponse,
+)
 from src.infra.db.db_base import SQLiteBase
-from src.infra.gateways.telegram_api import MessageParams, AttachmentParams, Attachment
-import openpyxl
+from src.infra.db.db_data import DbDataManager
+from src.infra.gateways.google_disk_loader import GoogleDiskLoader
+from src.infra.gateways.google_sheets_api import GoogleSheetsApi
+from src.infra.gateways.redis_api import RedisApi
+from src.infra.gateways.telegram_api import (
+    Attachment,
+    AttachmentParams,
+    MessageParams,
+    TelegramApi,
+)
+from src.infra.gateways.yandex_disk_loader import YaDiskLoader
 
-ADMIN_COMMANDS = {
-    "/help": "Общая справка по командам",
-    "/ping": "Проверка работает ли бот",
-    "/echo": "Возвращает текст, который отправили. \n<i>Пример: /echo привет\nВернет - привет</i>",
-    "/myid": "возвращает мой id",
-    "/send/60": "Временное решение. Отправляет пользователям, разеганным в течение последних 60 минут текст, следующий после команды. \n<i>Пример: /send/60 Вы зарегались в течение часа</i>",
-    "/send/all": "Временное решение. Отправляет ВСЕМ пользователям текст, следующий после команды. \n<i>Пример: /send/all Сообщение, которое уходит всем</i>",
-    "/users/list": "Выгружает список пользователей",
-    "/users/del": "Удаляет пользователей",
-    "/users/count": "Выгружает количество пользователей",
-    "/admin/add": "добавляем админа. Пример: /admin/add 123455 где 123456 - это user_id (получаем по команде /myid",
-    "/admin/remove": "Удаляем админа. Пример: /admin/add 123455 где 123456 - это user_id",
-    "/admin/list": "список id админов",
-    "/sql": "выполняет sql запрос"
-}
+logger = logging.getLogger(__name__)
 
-COMMON_COMMANDS = ["/myid", "/ping", "/echo"]
-
-DEL_KEY = "Dobrynya623622"
 
 class CommandProcessing:
     def __init__(self):
-        self.db = SQLiteBase()
+        self.db_data_manager = DbDataManager(SQLiteBase())
+        self.redis = RedisApi()
+        self.admin_command_token = get_key_config("ADMIN_COMMAND_TOKEN")
+        self.google_sheets_api = GoogleSheetsApi()
 
-    async def __call__(self, bot_id: int, user_id: int, message: str) -> List[MessageParams]:
-        message = message.strip()
-        command, params = message, ""
-        if message.find(" ") > 0:
-            command = message[0:message.find(" ") + 1].strip()
-            params = message[message.find(" ") + 1:].strip()
+        self.admin_commands = [
+            CommandParams(
+                command="/help",
+                handler=self.handle_help_command,
+                description="Общая справка по командам",
+            ),
+            CommandParams(
+                command="/refresh",
+                handler=self.handle_refresh_command,
+                description="Перечитать Google Sheets",
+            ),
+            CommandParams(
+                command="/refresh_all",
+                handler=self.handle_refresh_all_command,
+                description="Перечитать Google Sheets",
+            ),
+            CommandParams(
+                command="/sql",
+                handler=self.handle_sql_command,
+                description="выполняет sql запрос",
+            ),
+        ]
 
-        if command == "/help":
-            if not await self.command_available(user_id, command):
-                return []
-            msg = []
-            for cmnd, descr in ADMIN_COMMANDS.items():
-                msg.append(f"<b>{cmnd}</b> - {descr}")
-            return [MessageParams(chat_id=0, message="\n".join(msg))]
+        self.common_commands = [
+            CommandParams(
+                command="/start",
+                handler=self.handle_start_command,
+                description="Тут описание бота",
+            ),
+        ]
 
-        elif command == "/ping":
-            if not await self.command_available(user_id, command):
-                return []
-            return [MessageParams(chat_id=0, message="pong")]
+    async def __call__(self, event: BotEvent):
+        try:
+            payload = event.payload
+            message: str = (payload.get("message") or {}).get("text")
+            command, *command_tail = message.split(" ")
 
-        elif command == "/echo":
-            if not await self.command_available(user_id, command):
-                return []
-            if params:
-                return [MessageParams(chat_id=0, message=params)]
+            if command.startswith("/"):
+                response = (
+                    await self.process_admin_command(
+                        bot_id=event.bot_id, message=message
+                    )
+                    or await self.process_common_command(
+                        bot_id=event.bot_id, message=message
+                    )
+                    or HandledMessageResponse(message="Команда не распознана")
+                )
+            elif not command_tail:
+                response = await self.process_text_command(
+                    bot_id=event.bot_id, message=message
+                )
+            else:
+                response = HandledMessageResponse(message="Команда не распознана.")
 
-        elif command == "/send/60":
-            # отправляем всем, кто зарегался за последний час
-            if not await self.command_available(user_id, command):
-                return []
-            msg = []
-            if params:
-                sql = "select chat_id from user where rel_bot=:bot_id and chat_id is not null and datetime(date_created)>=datetime('now', '-1 Hour');"
-                result = await self.db.get_many(sql=sql, binds={"bot_id": bot_id})
-                cnt = len(result) if result else 0
-                if result:
-                    for row in result:
-                        msg.append(MessageParams(chat_id=int(row[0]), message=params))
-            msg.append(MessageParams(chat_id=0, message=f"отправлено сообщений: {cnt}"))
-            return msg
+            tg_api = TelegramApi(token=event.token)
+            await tg_api.send_msg(
+                MessageParams(
+                    chat_id=event.chat_id,
+                    message=response.message,
+                    attach=AttachmentParams(
+                        file_path=response.image_url, file_type=Attachment.IMAGE
+                    )
+                    if response.image_url
+                    else None,
+                )
+            )
+        except Exception as err:
+            logger.error(err)
 
-        elif command == "/send/all":
-            # отправляем всем, кто зарегался за последний час
-            if not await self.command_available(user_id, command):
-                return []
-            msg = []
-            if params:
-                sql = "select chat_id from user where rel_bot=:bot_id and chat_id is not null"
-                result = await self.db.get_many(sql=sql, binds={"bot_id": bot_id})
-                cnt = len(result) if result else 0
-                if result:
-                    for row in result:
-                        msg.append(MessageParams(chat_id=int(row[0]), message=params))
-            msg.append(MessageParams(chat_id=0, message=f"отправлено сообщений: {cnt}"))
-            return msg
+    async def process_admin_command(
+        self, bot_id: int, message: str
+    ) -> Optional[HandledMessageResponse]:
+        try:
+            admin_command, admin_command_token, *tail = message.split()
+        except:
+            return
+        handler = self.get_command_handler(admin_command, self.admin_commands)
+        if not handler:
+            return
+        if admin_command_token != self.admin_command_token:
+            return HandledMessageResponse(message="Неверный токен")
+        return HandledMessageResponse(
+            message=await handler(
+                HandlerParams(bot_id=bot_id, command=" ".join(tail) if tail else None)
+            )
+        )
 
-        elif command == "/users/del":
-            if not await self.command_available(user_id, command):
-                return []
-            if params != DEL_KEY:
-                return [MessageParams(chat_id=0, message="отсутствует DEL_KEY")]
-            sql = "delete from user"
-            await self.db.crud(sql=sql)
+    async def process_common_command(
+        self, bot_id: int, message: str
+    ) -> Optional[HandledMessageResponse]:
+        try:
+            admin_command, *tail = message.split()
+        except:
+            return
+        handler = self.get_command_handler(admin_command, self.common_commands)
+        if not handler:
+            return
+        return HandledMessageResponse(message=await handler())
 
-        elif command == "/users/count":
-            # возвращаем кол-во пользователей
-            if not await self.command_available(user_id, command):
-                return []
-            sql = "select count(1) from user where rel_bot=:bot_id"
-            result = await self.db.get_one(sql=sql, binds={"bot_id": bot_id})
-            return [MessageParams(chat_id=0, message=f"Кол-во пользователей: {result[0]}")]
+    async def process_text_command(
+        self,
+        bot_id: int,
+        message: str,
+    ) -> HandledMessageResponse:
+        return HandledMessageResponse(
+            message=await self.redis.hash_map_get_item(bot_id, message)
+            or "Команда не распознана",
+            image_url=await self.redis.hash_map_get_item(f"img_{bot_id}", message),
+        )
 
-        elif command == "/users/list":
-            # возвращаем кол-во пользователей
-            if not await self.command_available(user_id, command):
-                return []
-            sql = """select name "Имя", phone "Телефон", email, occupation "Вид деятельности", COALESCE(score,0) "баллы", date_created "Дата регистрации"
-from user where rel_bot = :bot_id
-order by date_created"""
-            results = await self.db.get_many(sql=sql, binds={"bot_id": bot_id}, names=True)
-            if results:
-                names, result = results
-                book = openpyxl.Workbook()
-                sheet = book.active
-                i = 1
-                for nn, name in enumerate(names, start=1):
-                    cell = sheet.cell(row=i, column=nn)
-                    cell.value = name
-                for row in result:
-                    i += 1
-                    j = 1
-                    for col in row:
-                        cell = sheet.cell(row=i, column=j)
-                        cell.value = col
-                        j += 1
+    def get_command_handler(
+        self, command: str, command_list: list[CommandParams]
+    ) -> Optional[Callable]:
+        for command_params in command_list:
+            if command == command_params.command:
+                return command_params.handler
 
-                f_name = f"files/users_{user_id}.xlsx"
-                book.save(f_name)
-                return [MessageParams(chat_id=0, message="список пользователей", attach=
-                                      AttachmentParams(file_path=f_name, file_type=Attachment.FILE))]
+    async def handle_help_command(self, handler_params: HandlerParams) -> str:
+        result = []
+        result.append("<b>Команды администратора</b> (/команда токен уточнение):")
+        for command_params in self.admin_commands:
+            result.append(
+                f"<b>{command_params.command}</b> - {command_params.description}"
+            )
 
-        elif command == "/myid":
-            if not await self.command_available(user_id, command):
-                return []
-            return [MessageParams(chat_id=0, message=f"Мой id: {user_id}")]
+        result.append("<b>Общие команды</b> (/команда уточнение):")
+        for command_params in self.common_commands:
+            result.append(
+                f"<b>{command_params.command}</b> - {command_params.description}"
+            )
+        return "\n".join(result)
 
-        elif command == "/admin/add":
-            if not await self.command_available(user_id, command):
-                return []
-            if params:
-                sql = "insert into admin(user_id) select :user_id where not exists(select 0 from admin where user_id=:user_id)"
-                await self.db.crud(sql, {"user_id": int(params)})
-                return [MessageParams(chat_id=0, message=f"Ok")]
-            return []
+    async def handle_refresh_command(self, handler_params: HandlerParams) -> str:
+        return await self._refresh_cache(handler_params, refresh_files=False)
 
-        elif command == "/admin/remove":
-            if not await self.command_available(user_id, command):
-                return []
-            if params:
-                sql = "delete from admin where user_id=:user_id"
-                await self.db.crud(sql, {"user_id": params})
-                return [MessageParams(chat_id=0, message=f"Ok")]
-            return []
+    async def handle_refresh_all_command(self, handler_params: HandlerParams) -> str:
+        return await self._refresh_cache(handler_params, refresh_files=True)
 
-        elif command == "/admin/list":
-            if not await self.command_available(user_id, command):
-                return []
-            sql = "select user_id from admin order by user_id"
-            result = await self.db.get_many(sql)
-            res = []
-            for row in result:
-                res.append(str(row[0]))
-            return [MessageParams(chat_id=0, message="id админов: {}".format(", ".join(res)))]
+    async def _refresh_cache(
+        self, handler_params: HandlerParams, refresh_files: bool
+    ) -> str:
+        ya_disk_loader = YaDiskLoader(bot_id=handler_params.bot_id)
+        google_disk_loader = GoogleDiskLoader(bot_id=handler_params.bot_id)
 
-        elif command == "/sql":
-            if not await self.command_available(user_id, command):
-                return []
-            if params.lower().find("insert") >= 0 or params.lower().find("update") >= 0 or params.lower().find("delete") >= 0:
-                await self.db.crud(sql=params)
-                return []
-            result = await self.db.get_many(params, names=True)
-            res = []
-            if result:
-                names, data = result
-                for nn, row in enumerate(data, start=1):
-                    onerow = f"\n*** ROW={nn} ***\n"
-                    for n in range(len(row)):
-                        onerow += f"{names[n]}: {row[n]}\n"
-                    onerow.strip().strip("\n")
-                    res.append(onerow)
+        sheet_info = await self.db_data_manager.get_sheet_info(handler_params.bot_id)
+        data = self.google_sheets_api.get_data_by_sheet_url(
+            sheet_info.url, sheet_info.sheet
+        )
+        await self.redis.delete(handler_params.bot_id)
+        if refresh_files:
+            await self.redis.delete(f"img_{handler_params.bot_id}")
+        for row in data:
+            row_data = []
+            ix_data = str(row.get(sheet_info.index_column))
+            if (
+                not ix_data
+                or handler_params.command
+                and handler_params.command != ix_data
+            ):
+                continue
+            for column in sheet_info.columns:
+                if row.get(column):
+                    if validators.url(row.get(column).split()[0]):
+                        url = URL(row.get(column).split()[0])
 
-                return [MessageParams(chat_id=0, message="\n\n".join(res))]
+                        file_path = await ya_disk_loader.download(url, refresh_files)
+                        if not file_path:
+                            file_path = await google_disk_loader.download(
+                                url, refresh_files
+                            )
+                        if file_path:
+                            await self.redis.hash_map_set_key(
+                                f"img_{handler_params.bot_id}",
+                                ix_data,
+                                file_path,
+                            )
+                    else:
+                        row_data.append(f"<b>{column}</b>")
+                        row_data.append(str(row.get(column)))
+                        row_data.append("")
+            if ix_data is not None:
+                await self.redis.hash_map_set_key(
+                    handler_params.bot_id, ix_data, "\n".join(row_data)
+                )
+        return "Обновление выполнено"
 
-    async def command_available(self, user_id: int, command: str):
-        if command in COMMON_COMMANDS:
-            return True
-        result = await self.db.get_one("select 1 from admin where user_id=:user_id", {"user_id": user_id})
-        return True if result else False
+    async def handle_sql_command(self, token: str, sql: str) -> str:
+        return "в разработке"
 
+    async def handle_start_command(self) -> str:
+        return "Описание бота"
