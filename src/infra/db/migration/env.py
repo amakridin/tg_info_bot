@@ -3,10 +3,10 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import create_engine
 
-from config import DB_CONNECTION
+from get_config import get_key_config
 from src.infra.db.migration import model
 
-db_dsn = DB_CONNECTION
+db_dsn = get_key_config("DB_CONNECTION")
 
 config = context.config
 
