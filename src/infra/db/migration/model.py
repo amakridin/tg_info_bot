@@ -26,6 +26,7 @@ class BotTable(Base):
     date_created = Column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
+    description = Column(Text)
 
 
 Index("ix_bots__token", BotTable.token)

@@ -17,15 +17,29 @@ class DbDataManager:
 
     async def get_bot_info_by_name(self, bot_name: str) -> Optional[Bot]:
         res = await self._db_manager.get(
-            "SELECT id, name, token, active, date_created FROM bots WHERE name = :name",
+            "SELECT id, name, token, active, date_created, description FROM bots WHERE name = :name",
             dict(name=bot_name),
         )
         if res:
             return Bot(**res[0])
 
+    async def get_bot_info_by_id(self, bot_id: int) -> Optional[Bot]:
+        res = await self._db_manager.get(
+            "SELECT id, name, token, active, date_created, description FROM bots WHERE id = :bot_id",
+            dict(bot_id=bot_id),
+        )
+        if res:
+            return Bot(**res[0])
+
+    async def update_bot_description(self, bot_id: int, new_description: str) -> None:
+        await self._db_manager.crud(
+            "UPDATE bots SET description = :new_description WHERE id = :bot_id",
+            dict(new_description=new_description, bot_id=bot_id),
+        )
+
     async def get_bot_info_by_token(self, token: str) -> Optional[Bot]:
         res = await self._db_manager.get(
-            "SELECT id, name, token, active, date_created FROM bots WHERE token = :token",
+            "SELECT id, name, token, active, date_created, description FROM bots WHERE token = :token",
             dict(token=token),
         )
         if res:
@@ -35,7 +49,7 @@ class DbDataManager:
         return await self._db_manager.get("SELECT * from BOTS where active = true")
 
     async def _get_bots(self, field: str, value: Any) -> Optional[list[Bot]]:
-        query = "SELECT id, name, token, active, date_created from BOTS where {field} = :value".format(
+        query = "SELECT id, name, token, active, date_created, description from BOTS where {field} = :value".format(
             field=field
         )
         return await self._db_manager.get(query, dict(value=value))

@@ -57,6 +57,11 @@ class CommandProcessing:
                 handler=self.handle_sql_command,
                 description="выполняет sql запрос",
             ),
+            CommandParams(
+                command="/description",
+                handler=self.handle_description_command,
+                description="обновляет описание бота",
+            ),
         ]
 
         self.common_commands = [
@@ -109,7 +114,7 @@ class CommandProcessing:
         self, bot_id: int, message: str
     ) -> Optional[HandledMessageResponse]:
         try:
-            admin_command, admin_command_token, *tail = message.split()
+            admin_command, admin_command_token, *tail = message.split(" ")
         except:
             return
         handler = self.get_command_handler(admin_command, self.admin_commands)
@@ -127,13 +132,17 @@ class CommandProcessing:
         self, bot_id: int, message: str
     ) -> Optional[HandledMessageResponse]:
         try:
-            admin_command, *tail = message.split()
+            admin_command, *tail = message.split(" ")
         except:
             return
         handler = self.get_command_handler(admin_command, self.common_commands)
         if not handler:
             return
-        return HandledMessageResponse(message=await handler())
+        return HandledMessageResponse(
+            message=await handler(
+                HandlerParams(bot_id=bot_id, command=" ".join(tail) if tail else None)
+            )
+        )
 
     async def process_text_command(
         self,
@@ -225,5 +234,10 @@ class CommandProcessing:
     async def handle_sql_command(self, token: str, sql: str) -> str:
         return "в разработке"
 
-    async def handle_start_command(self) -> str:
-        return "Описание бота"
+    async def handle_description_command(self, handler_params: HandlerParams) -> str:
+        await self.db_data_manager.update_bot_description(handler_params.bot_id, handler_params.command)
+        return "Описание обновлено"
+
+    async def handle_start_command(self, handler_params: HandlerParams) -> str:
+        bot_info = await self.db_data_manager.get_bot_info_by_id(handler_params.bot_id)
+        return bot_info.description or " "

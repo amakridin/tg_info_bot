@@ -28,3 +28,4 @@ class Bot(EntityModel):
     token: str
     active: bool
     date_created: datetime
+    description: str
